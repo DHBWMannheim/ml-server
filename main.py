@@ -4,21 +4,26 @@ from tensorflow import keras
 from searchtweets import load_credentials, gen_request_parameters, collect_results
 from datetime import datetime
 import math
+import numpy as np
 
 
 app = Flask(__name__)
 
-search_args = load_credentials("./.twitter_keys.yaml", yaml_key="search_tweets_v2")
+search_args = load_credentials("./data/.twitter_keys.yaml", yaml_key="search_tweets_v2")
 
 @tf.keras.utils.register_keras_serializable()
 def normalize_data(input_data):
   lowercase = tf.strings.lower(input_data)
   return tf.strings.regex_replace(lowercase, '@(\w*)|(\\n)|(https:\/\/t\.co[\w\/]*)', '')
 
-model = keras.models.load_model("./sentiment")
+model = keras.models.load_model("./models/sentiment/trained")
 
 def normalized_sigmoid(x):
     return ((1 / (1 + math.exp(-x))) - 0.5) * 2
+
+def simple_moving_avg(x, n):
+    cumsum = np.cumsum(np.insert(x, 0, 0))
+    return (cumsum[n:] - cumsum[:-n]) / float(n)
 
 @app.route("/sentiment/twitter", methods=["GET"])
 def sentiment_analysis():
@@ -41,6 +46,7 @@ def sentiment_analysis():
     create_dates = []
     tweet_texts = []
     weighted_sentiment = []
+    sentiment_sma = []
 
     for tweet in tweets:
         tweet_texts.append(tweet['text'])
@@ -55,7 +61,14 @@ def sentiment_analysis():
         weight = tweets[i]['public_metrics']['like_count'] + 1
         weighted_sentiment.append(normalized_sigmoid(weight * sentiment[i]))
 
+    n = 10
+    sentiment_sma = simple_moving_avg(weighted_sentiment, n)
+
+    for i in range(n - 1):
+        sentiment_sma = np.insert(sentiment_sma, i, weighted_sentiment[i])
+
     return jsonify({
         'dates': create_dates,
-        'weighted_sentiment': weighted_sentiment
+        'weighted_sentiment': weighted_sentiment,
+        'sma': sentiment_sma.tolist()
     })
