@@ -41,9 +41,9 @@ func (t *twitterResults) ToTensor() (*tf.Tensor, error) {
 }
 
 type PredictionResult struct {
-	WeightedSentiment []float64 `json:"weighted_sentiment,omitempty"`
-	Dates             []string  `json:"dates,omitempty"`
-	SMA               []float32 `json:"sma,omitempty"`
+	Value float32 `json:"value,omitempty"`
+	Date  string  `json:"date,omitempty"`
+	SMA   float32 `json:"sma,omitempty"`
 }
 
 type sentimentService struct {
@@ -160,19 +160,26 @@ func (s *sentimentService) TwitterSentiment(w http.ResponseWriter, req *http.Req
 
 	predictions := results[0]
 
-	var response PredictionResult
-
+	var res []*PredictionResult
+	var weights []float64
 	pds := predictions.Value().([][]float32)
 
 	for i, pred := range pds {
 		weight := tweetResults[i].Likes + 1
 		weightedSentiment := util.NormalizedSigmoid(float32(weight) * pred[0])
 
-		response.WeightedSentiment = append(response.WeightedSentiment, weightedSentiment)
-		response.Dates = append(response.Dates, tweetResults[i].Date.Format(time.RFC3339Nano))
-
-		// TODO: Calculate SMA for all weighted_seniments
+		weights = append(weights, weightedSentiment)
+		res = append(res, &PredictionResult{
+			Value: float32(weightedSentiment),
+			Date:  tweetResults[i].Date.Format(time.RFC3339Nano),
+		})
 	}
 
-	json.NewEncoder(w).Encode(response)
+	weights = util.SimpleMovingAverage(weights, 10)
+
+	for i, w := range weights {
+		res[i].SMA = float32(w)
+	}
+
+	json.NewEncoder(w).Encode(res)
 }
