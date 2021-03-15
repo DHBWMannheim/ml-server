@@ -5,7 +5,7 @@
 1. Install dependencies
 
 ```bash
-pip install -r requirements.txt
+go mod download
 ```
 
 2. Add datasets and tokens
@@ -13,11 +13,13 @@ pip install -r requirements.txt
 - add `.twitter_keys.yaml` to /data/
 - add `tweets.csv` to /data/ - Download [here](https://www.dropbox.com/s/ur7pw797mgcc1wr/tweets.csv?dl=0)
 
-2. Start Flask Server
+3. Start Go Server
 
 ```bash
-FLASK_APP="main.py" flask run
+go run main.go --token="<Twitter API Token>" [--port=5000]
 ```
+
+The `--port` flag is optional and has a default value of 5000
 
 ## Usage
 
