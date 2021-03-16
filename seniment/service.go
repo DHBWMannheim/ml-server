@@ -181,5 +181,6 @@ func (s *sentimentService) TwitterSentiment(w http.ResponseWriter, req *http.Req
 		res[i].SMA = float32(w)
 	}
 
+	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(res)
 }
