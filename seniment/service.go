@@ -40,7 +40,7 @@ func (t *twitterResults) ToTensor() (*tf.Tensor, error) {
 	return tf.NewTensor(input)
 }
 
-type PredictionResult struct {
+type predictionResult struct {
 	Value float32 `json:"value,omitempty"`
 	Date  string  `json:"date,omitempty"`
 	SMA   float32 `json:"sma,omitempty"`
@@ -160,7 +160,7 @@ func (s *sentimentService) TwitterSentiment(w http.ResponseWriter, req *http.Req
 
 	predictions := results[0]
 
-	var res []*PredictionResult
+	var res []*predictionResult
 	var weights []float64
 	pds := predictions.Value().([][]float32)
 
@@ -169,7 +169,7 @@ func (s *sentimentService) TwitterSentiment(w http.ResponseWriter, req *http.Req
 		weightedSentiment := util.NormalizedSigmoid(float32(weight) * pred[0])
 
 		weights = append(weights, weightedSentiment)
-		res = append(res, &PredictionResult{
+		res = append(res, &predictionResult{
 			Value: float32(weightedSentiment),
 			Date:  tweetResults[i].Date.Format(time.RFC3339Nano),
 		})
