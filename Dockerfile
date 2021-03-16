@@ -5,8 +5,6 @@ WORKDIR /app/
 # Install dependencies
 COPY go* /app/
 
-
-
 ENV GO111MODULE=on
 
 # Install tensorflow C-Bindings
@@ -22,10 +20,6 @@ COPY . /app/
 
 # Build project
 RUN GOOS=linux go build -ldflags '-w -s' -o /app/main
-
-
-
-
 
 
 FROM ubuntu as prod
