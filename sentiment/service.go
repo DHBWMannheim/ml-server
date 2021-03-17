@@ -1,4 +1,4 @@
-package seniment
+package sentiment
 
 import (
 	"context"
@@ -31,7 +31,7 @@ type twitterResult struct {
 
 type twitterResults []*twitterResult
 
-// Transforms the `Text` value of the Tweet into a Tensot to be interpreted by tensorflow
+// Transforms the `Text` value of the Tweet into a Tensor to be interpreted by tensorflow
 func (t *twitterResults) ToTensor() (*tf.Tensor, error) {
 	var input [][1]string
 	for _, t := range *t {
@@ -41,9 +41,12 @@ func (t *twitterResults) ToTensor() (*tf.Tensor, error) {
 }
 
 type predictionResult struct {
+	// Weighted prediction result from tensorflow
 	Value float32 `json:"value,omitempty"`
-	Date  string  `json:"date,omitempty"`
-	SMA   float32 `json:"sma,omitempty"`
+	// Creation date of the predicted Tweet
+	Date string `json:"date,omitempty"`
+	// Simple moving average of the prediction
+	SMA float32 `json:"sma,omitempty"`
 }
 
 type sentimentService struct {
@@ -67,7 +70,14 @@ func NewSentimentService(model *tf.SavedModel, tweet *twitter.Tweet) Service {
 	return &sentimentService{model, tweet}
 }
 
+// Implements the http.Handler interface and handles incoming HTTP requests
 func (s *sentimentService) TwitterSentiment(w http.ResponseWriter, req *http.Request) {
+
+	if req.Method != http.MethodGet {
+		http.NotFound(w, req)
+		return
+	}
+
 	twitterQuery := "ether OR eth OR ethereum OR cryptocurrency"
 	tweetCount := 100
 
@@ -75,15 +85,13 @@ func (s *sentimentService) TwitterSentiment(w http.ResponseWriter, req *http.Req
 	if query, ok := params["tweet_count"]; ok {
 		parsed, err := strconv.ParseInt(query[0], 10, 8)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(w, err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		if parsed < 10 || parsed > 100 {
-			w.WriteHeader(http.StatusBadRequest)
 			err = errors.New(fmt.Sprintf("tweet_count %d is not between 10 and 100", parsed))
-			fmt.Fprint(w, err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -96,9 +104,8 @@ func (s *sentimentService) TwitterSentiment(w http.ResponseWriter, req *http.Req
 		keywordCount := len(strings.Split(parsed, "OR"))
 
 		if keywordCount >= 10 || keywordCount == 0 {
-			w.WriteHeader(http.StatusBadRequest)
 			err := errors.New(fmt.Sprintf("twitter_query has %d keywords, but must be betweent 1 and 10", keywordCount))
-			fmt.Fprint(w, err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -112,8 +119,7 @@ func (s *sentimentService) TwitterSentiment(w http.ResponseWriter, req *http.Req
 	tweets, err := s.tweet.RecentSearch(context.Background(), fmt.Sprintf("(%s) -bot -app -is:retweet is:verified lang:en", twitterQuery), *searchOpts, *fieldOpts)
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -124,8 +130,8 @@ func (s *sentimentService) TwitterSentiment(w http.ResponseWriter, req *http.Req
 		date, err := time.Parse(time.RFC3339Nano, lookup.Tweet.CreatedAt)
 
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "could not parse date %s", lookup.Tweet.CreatedAt)
+			http.Error(w, fmt.Sprintf("could not parse date %s", lookup.Tweet.CreatedAt), http.StatusInternalServerError)
+			return
 		}
 
 		tweetResults = append(tweetResults, &twitterResult{
@@ -142,7 +148,7 @@ func (s *sentimentService) TwitterSentiment(w http.ResponseWriter, req *http.Req
 	input, err := tweetResults.ToTensor()
 
 	if err != nil {
-		fmt.Fprint(w, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -154,25 +160,22 @@ func (s *sentimentService) TwitterSentiment(w http.ResponseWriter, req *http.Req
 		}, nil)
 
 	if err != nil {
-		fmt.Fprint(w, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	predictions := results[0]
+	res := make([]*predictionResult, tweetCount)
+	weights := make([]float64, tweetCount)
 
-	var res []*predictionResult
-	var weights []float64
-	pds := predictions.Value().([][]float32)
-
-	for i, pred := range pds {
+	for i, pred := range results[0].Value().([][]float32) {
 		weight := tweetResults[i].Likes + 1
 		weightedSentiment := util.NormalizedSigmoid(float32(weight) * pred[0])
 
-		weights = append(weights, weightedSentiment)
-		res = append(res, &predictionResult{
+		weights[i] = weightedSentiment
+		res[i] = &predictionResult{
 			Value: float32(weightedSentiment),
 			Date:  tweetResults[i].Date.Format(time.RFC3339Nano),
-		})
+		}
 	}
 
 	weights = util.SimpleMovingAverage(weights, 10)

@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/DHBWMannheim/ml-server/seniment"
+	"github.com/DHBWMannheim/ml-server/sentiment"
 	"github.com/g8rswimmer/go-twitter"
 	tf "github.com/galeone/tensorflow/tensorflow/go"
 )
@@ -26,12 +26,12 @@ func main() {
 	flag.Parse()
 
 	if len(*token) == 0 {
-		panic("Twitter API token must be provided!")
+		log.Fatal("Twitter API token must be provided!")
 	}
 
 	model, err := tf.LoadSavedModel("./models/sentiment/trained", []string{"serve"}, nil)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	tweet := &twitter.Tweet{
@@ -42,7 +42,7 @@ func main() {
 		Host:   "https://api.twitter.com",
 	}
 
-	service := seniment.NewSentimentService(model, tweet)
+	service := sentiment.NewSentimentService(model, tweet)
 
 	http.Handle("/sentiment/twitter", http.HandlerFunc(service.TwitterSentiment))
 

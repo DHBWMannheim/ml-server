@@ -1,16 +1,19 @@
+// Practical mathematical functions used to normalize and transform prediction results
 package util
 
-import (
-	"math"
-)
+import "math"
 
+// Sigmoid function based this formula: https://de.wikipedia.org/wiki/Sigmoidfunktion
+//
+// Transforming value range from [0,1] to [-1,1]
 func NormalizedSigmoid(x float32) float64 {
 	return ((1 / (1 + math.Exp(-float64(x)))) - 0.5) * 2
 }
 
-// Calculates the SMA of the given input array with the given window size n
+// Calculates the SMA of the given input array with the given window size n.
+//
 // It calculates the CumSum of the input array and afterwards
-// slices it into the final result
+// slices it into the final result.
 func SimpleMovingAverage(input []float64, n int) []float64 {
 	cumsum := make([]float64, len(input)+1)
 	result := make([]float64, len(input))
