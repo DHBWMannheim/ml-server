@@ -1,3 +1,4 @@
+// Provides an http.HandlerFunc which predicts future prices based on a technical Model
 package technical
 
 import (
