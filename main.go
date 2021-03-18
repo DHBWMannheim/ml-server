@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/DHBWMannheim/ml-server/sentiment"
 	"github.com/g8rswimmer/go-twitter"
 	tf "github.com/galeone/tensorflow/tensorflow/go"
+	"github.com/google/uuid"
+	"github.com/hashicorp/go-hclog"
 )
 
 type authorize struct {
@@ -17,6 +20,17 @@ type authorize struct {
 
 func (a *authorize) Add(req *http.Request) {
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", a.Token))
+}
+
+func withLogging(next http.HandlerFunc, logger hclog.Logger) http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		id := uuid.New()
+		rw.Header().Add("x-request-id", id.String())
+
+		start := time.Now()
+		next(rw, r)
+		logger.Info("serving request", "request-id", id.String(), "path", r.URL.String(), "time", time.Now().Sub(start).Round(time.Millisecond))
+	}
 }
 
 func main() {
@@ -42,9 +56,15 @@ func main() {
 		Host:   "https://api.twitter.com",
 	}
 
+	l := hclog.New(&hclog.LoggerOptions{
+		Name:  "main",
+		Level: hclog.Info,
+		Color: hclog.ColorOption(hclog.AutoColor),
+	})
+
 	service := sentiment.NewSentimentService(model, tweet)
 
-	http.Handle("/sentiment/twitter", http.HandlerFunc(service.TwitterSentiment))
+	http.Handle("/sentiment/twitter", withLogging(service.TwitterSentiment, l))
 
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", *port), nil); err != nil {
 		log.Fatal(err)

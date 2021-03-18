@@ -37,3 +37,45 @@ func SimpleMovingAverage(input []float64, n int) []float64 {
 
 	return result
 }
+
+// Calculates the Aroon index based on the closing prices
+// and a given period to analyse. Normally the window is
+// window=25, but it is customizable.
+//
+// The output array has the same length as the closing price
+// array.
+// The missing len(close)-window elements will be inserted at the beginning
+// of the result array and initialized with 0
+func Aroon(close []float64, window int) (aroon []float64) {
+
+	// aroon[0:window] = 0
+	for i := 0; i < window; i++ {
+		aroon = append(aroon, 0)
+	}
+
+	// aroon[window:len(close)-1] = Aroon()
+	for j := window; j < len(close); j++ {
+		max, min := 0.0, math.Inf(1)
+		var periodMax, periodMin int
+
+		for i := j - window; i < j; i++ {
+			price := close[i]
+			if price > max {
+				max = price
+				periodMax = j - i
+			}
+			if price < min {
+				min = price
+				periodMin = j - i
+			}
+		}
+
+		up := (float64((window - periodMax) / window)) * 100
+
+		down := (float64((window - periodMin) / window)) * 100
+
+		aroon = append(aroon, up-down)
+	}
+
+	return aroon
+}
