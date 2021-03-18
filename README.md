@@ -1,5 +1,5 @@
+[![Go Reference](https://pkg.go.dev/badge/github.com/DHBWMannheim/ml-server.svg)](https://pkg.go.dev/github.com/DHBWMannheim/ml-server)
 # ML-Server
-
 ## Getting Started
 
 1. Install dependencies
