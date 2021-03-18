@@ -31,10 +31,10 @@ The `--port` flag is optional and has a default value of 5000
 
 ## Todos
 
-- [] Bin noch nicht zufrieden mit der gonum/mat Nutzung. Das ist iwie unintuitiv und umständlich
-- [] Hinzufügen der Prediction Dates des nächsten Monats
-- [] mat.Dense brauch feste Rows/Cols, das führt bei dem Laden anderer Aktien zu Fehlern
-- [] techn. Modelle müssen jeden Tag erneuert werden, um valide Predictions zu haben
-- [] On-Demand Model-Generation
-- [] Speichern der Modelle in Google Cloud Storage/S3 Bucket?
+- [ ] Bin noch nicht zufrieden mit der gonum/mat Nutzung. Das ist iwie unintuitiv und umständlich
+- [ ] Hinzufügen der Prediction Dates des nächsten Monats
+- [ ] mat.Dense brauch feste Rows/Cols, das führt bei dem Laden anderer Aktien zu Fehlern
+- [ ] techn. Modelle müssen jeden Tag erneuert werden, um valide Predictions zu haben
+- [ ] On-Demand Model-Generation
+- [ ] Speichern der Modelle in Google Cloud Storage/S3 Bucket?
 
