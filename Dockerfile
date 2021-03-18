@@ -36,6 +36,7 @@ RUN apt-get update \
 
 COPY --chown=0:0 --from=builder /app/main /app/main
 COPY --chown=0:0 --from=builder /app/models/sentiment/ /app/models/sentiment/
+COPY --chown=0:0 --from=builder /app/models/technical/ /app/models/technical/
 
 
 WORKDIR /app
