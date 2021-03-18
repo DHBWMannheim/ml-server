@@ -70,12 +70,26 @@ func Aroon(close []float64, window int) (aroon []float64) {
 			}
 		}
 
-		up := (float64((window - periodMax) / window)) * 100
+		up := (float64((window - periodMax)) / float64(window)) * 100
 
-		down := (float64((window - periodMin) / window)) * 100
+		down := (float64((window - periodMin)) / float64(window)) * 100
 
 		aroon = append(aroon, up-down)
 	}
 
 	return aroon
+}
+
+func RemoveZeroValues(input []float64) ([]float64, []int) {
+	var clean []float64
+	var removedIndices []int
+	for i, e := range input {
+		if e == 0 {
+			removedIndices = append(removedIndices, i)
+			continue
+		}
+		clean = append(clean, e)
+	}
+
+	return clean, removedIndices
 }

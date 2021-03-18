@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/DHBWMannheim/ml-server/sentiment"
+	"github.com/DHBWMannheim/ml-server/technical"
 	"github.com/g8rswimmer/go-twitter"
 	tf "github.com/galeone/tensorflow/tensorflow/go"
 	"github.com/google/uuid"
@@ -48,6 +49,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	techModel, err := tf.LoadSavedModel("./models/technical/trained", []string{"serve"}, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	tweet := &twitter.Tweet{
 		Authorizer: &authorize{
 			Token: *token,
@@ -62,9 +68,11 @@ func main() {
 		Color: hclog.ColorOption(hclog.AutoColor),
 	})
 
-	service := sentiment.NewSentimentService(model, tweet)
+	sentimentService := sentiment.NewSentimentService(model, tweet)
+	technicalService := technical.NewService(techModel)
 
-	http.Handle("/sentiment/twitter", withLogging(service.TwitterSentiment, l))
+	http.Handle("/sentiment/twitter", withLogging(sentimentService.TwitterSentiment, l))
+	http.Handle("/technical", withLogging(technicalService.TechnicalAnalysis, l))
 
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", *port), nil); err != nil {
 		log.Fatal(err)
