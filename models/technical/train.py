@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-import os, random
+import os, random, sys
 import tensorflow as tf
 from tensorflow.keras import layers
 import pandas as pd
@@ -18,116 +18,117 @@ from ta.momentum import KAMAIndicator, PercentagePriceOscillator, PercentageVolu
 from ta.trend import MACD, ADXIndicator, AroonIndicator
 from ta.volume import OnBalanceVolumeIndicator, AccDistIndexIndicator
 
-batch_size = 31
-symbol = 'ETH-USD'
+if len(sys.argv) > 1:
 
-end = datetime.today()
-start = datetime(2000, 9, 1)
-ETH = pdr.DataReader(symbol,'yahoo',start,end)
+    batch_size = 31
+    symbol = sys.argv[1]
 
-df = pd.DataFrame(data=ETH)
+    end = datetime.today()
+    start = datetime(2000, 9, 1)
+    ETH = pdr.DataReader(symbol,'yahoo',start,end)
 
-kama_indicator = KAMAIndicator(close = df["Close"], window = 10, pow1 = 2, pow2 = 30, fillna = False)
-df['kama'] = kama_indicator.kama()
+    df = pd.DataFrame(data=ETH)
 
-ppo_indicator = PercentagePriceOscillator(close = df["Close"], window_slow = 20, window_fast = 10, window_sign = 9, fillna = False)
-df['ppo'] = ppo_indicator.ppo()
+    kama_indicator = KAMAIndicator(close = df["Close"], window = 10, pow1 = 2, pow2 = 30, fillna = False)
+    df['kama'] = kama_indicator.kama()
 
-roc_indicator = ROCIndicator(close = df["Close"], window = 12, fillna = False)
-df['roc'] = roc_indicator.roc()
+    ppo_indicator = PercentagePriceOscillator(close = df["Close"], window_slow = 20, window_fast = 10, window_sign = 9, fillna = False)
+    df['ppo'] = ppo_indicator.ppo()
 
-macd_indicator = MACD(close = df["Close"], window_slow = 20, window_fast = 12, window_sign = 9, fillna = False)
-df['macd'] = macd_indicator.macd()
+    roc_indicator = ROCIndicator(close = df["Close"], window = 12, fillna = False)
+    df['roc'] = roc_indicator.roc()
 
-rsi_indicator = RSIIndicator(close = df["Close"], window = 14, fillna = False)
-df['rsi'] = rsi_indicator.rsi()
+    macd_indicator = MACD(close = df["Close"], window_slow = 20, window_fast = 12, window_sign = 9, fillna = False)
+    df['macd'] = macd_indicator.macd()
 
-aroon_indicator = AroonIndicator(close = df["Close"], window = 20, fillna = False)
-df['aroon'] = aroon_indicator.aroon_indicator()
+    rsi_indicator = RSIIndicator(close = df["Close"], window = 14, fillna = False)
+    df['rsi'] = rsi_indicator.rsi()
 
-boll_indicator = BollingerBands(close = df["Close"], window = 20, window_dev = 2, fillna = False)
-df['boll_mavg'] = boll_indicator.bollinger_mavg()
+    aroon_indicator = AroonIndicator(close = df["Close"], window = 20, fillna = False)
+    df['aroon'] = aroon_indicator.aroon_indicator()
 
-df.rename(columns = {"Close": "price"}, inplace=True)
-prices = df['price'].to_numpy()
+    boll_indicator = BollingerBands(close = df["Close"], window = 20, window_dev = 2, fillna = False)
+    df['boll_mavg'] = boll_indicator.bollinger_mavg()
 
-df['day_of_month'] = df.index.day
-df['day_of_week'] = df.index.dayofweek
-df['month'] = df.index.month
+    df.rename(columns = {"Close": "price"}, inplace=True)
+    prices = df['price'].to_numpy()
 
-df.dropna(inplace=True)
-df = df.drop(df.columns[[0, 1, 2, 4, 5]], axis=1)
+    df['day_of_month'] = df.index.day
+    df['day_of_week'] = df.index.dayofweek
+    df['month'] = df.index.month
 
-X_columns = ['price', 'kama', 'ppo', 'roc', 'macd', 'rsi', 'aroon', 'boll_mavg', 
-                   'day_of_month', 'day_of_week', 'month']
+    df.dropna(inplace=True)
+    df = df.drop(df.columns[[0, 1, 2, 4, 5]], axis=1)
 
-X_data = df.filter(X_columns)
-y_data = df.filter(['price'])
+    X_columns = ['price', 'kama', 'ppo', 'roc', 'macd', 'rsi', 'aroon', 'boll_mavg', 
+                    'day_of_month', 'day_of_week', 'month']
 
+    X_data = df.filter(X_columns)
+    y_data = df.filter(['price'])
 
-X_scaler = MinMaxScaler(feature_range = (0, 1))
-y_scaler = MinMaxScaler(feature_range = (0, 1))
+    X_scaler = MinMaxScaler(feature_range = (0, 1))
+    y_scaler = MinMaxScaler(feature_range = (0, 1))
 
-X_scaled_data = X_scaler.fit_transform(X_data)
-y_scaled_data = y_scaler.fit_transform(y_data)
+    X_scaled_data = X_scaler.fit_transform(X_data)
+    y_scaled_data = y_scaler.fit_transform(y_data)
 
-X_scaled_data = pd.DataFrame(data=X_scaled_data, index=X_data.index, columns=X_columns)
-y_scaled_data = pd.DataFrame(data=y_scaled_data, index=y_data.index, columns=['price'])
+    X_scaled_data = pd.DataFrame(data=X_scaled_data, index=X_data.index, columns=X_columns)
+    y_scaled_data = pd.DataFrame(data=y_scaled_data, index=y_data.index, columns=['price'])
 
-X_scaled_batches = []
-y_scaled_batches = []
+    X_scaled_batches = []
+    y_scaled_batches = []
 
-for i in range(len(X_scaled_data) - batch_size - 1):
-    X_scaled_batches.append(X_scaled_data.iloc[i:(i+batch_size)].values)
-    y_scaled_batches.append(y_scaled_data.iloc[i+batch_size + 1])
+    for i in range(len(X_scaled_data) - batch_size - 1):
+        X_scaled_batches.append(X_scaled_data.iloc[i:(i+batch_size)].values)
+        y_scaled_batches.append(y_scaled_data.iloc[i+batch_size + 1])
 
-mixed = list(zip(X_scaled_batches, y_scaled_batches))
+    mixed = list(zip(X_scaled_batches, y_scaled_batches))
 
-random.shuffle(mixed)
+    random.shuffle(mixed)
 
-X_random_batches, y_random_batches = zip(*mixed)
+    X_random_batches, y_random_batches = zip(*mixed)
 
-train_size = int(len(X_scaled_batches) * 0.9)
-test_size = len(X_scaled_batches) - train_size
-X_train_random, X_test_random = X_random_batches[0:train_size], X_random_batches[train_size:len(X_scaled_batches)]
-y_train_random, y_test_random = y_random_batches[0:train_size], y_random_batches[train_size:len(y_scaled_batches)]
+    train_size = int(len(X_scaled_batches) * 0.9)
+    test_size = len(X_scaled_batches) - train_size
+    X_train_random, X_test_random = X_random_batches[0:train_size], X_random_batches[train_size:len(X_scaled_batches)]
+    y_train_random, y_test_random = y_random_batches[0:train_size], y_random_batches[train_size:len(y_scaled_batches)]
 
-X_train_random = np.array(X_train_random)
-X_train_random = np.reshape(X_train_random, (X_train_random.shape[0], X_train_random.shape[1], X_train_random.shape[2]))
-y_train_random = np.array(y_train_random)
+    X_train_random = np.array(X_train_random)
+    X_train_random = np.reshape(X_train_random, (X_train_random.shape[0], X_train_random.shape[1], X_train_random.shape[2]))
+    y_train_random = np.array(y_train_random)
 
-X_test_random = np.array(X_test_random)
-X_test_random = np.reshape(X_test_random, (X_test_random.shape[0], X_test_random.shape[1], X_test_random.shape[2]))
-y_test_random = np.array(y_test_random)
+    X_test_random = np.array(X_test_random)
+    X_test_random = np.reshape(X_test_random, (X_test_random.shape[0], X_test_random.shape[1], X_test_random.shape[2]))
+    y_test_random = np.array(y_test_random)
 
-train_size = int(len(X_scaled_batches) * 0.9)
-test_size = len(X_scaled_batches) - train_size
-X_train, X_test = X_scaled_batches[0:train_size], X_scaled_batches[train_size:len(X_scaled_batches)]
+    train_size = int(len(X_scaled_batches) * 0.9)
+    test_size = len(X_scaled_batches) - train_size
+    X_train, X_test = X_scaled_batches[0:train_size], X_scaled_batches[train_size:len(X_scaled_batches)]
 
-y_train, y_test = y_scaled_batches[0:train_size], y_scaled_batches[train_size:len(y_scaled_batches)]
+    y_train, y_test = y_scaled_batches[0:train_size], y_scaled_batches[train_size:len(y_scaled_batches)]
 
-X_train = np.array(X_train)
-X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], X_train.shape[2]))
-y_train = np.array(y_train)
+    X_train = np.array(X_train)
+    X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], X_train.shape[2]))
+    y_train = np.array(y_train)
 
-X_test = np.array(X_test)
-X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], X_test.shape[2]))
-y_test = np.array(y_test)
+    X_test = np.array(X_test)
+    X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], X_test.shape[2]))
+    y_test = np.array(y_test)
 
-model = tf.keras.Sequential()
+    model = tf.keras.Sequential()
 
-model.add(layers.LSTM(units = 15, return_sequences = False, input_shape = (X_train_random.shape[1], X_train_random.shape[2])))
-model.add(layers.Dropout(0.2))
-model.add(layers.Dense(units = 1))
+    model.add(layers.LSTM(units = 15, return_sequences = False, input_shape = (X_train_random.shape[1], X_train_random.shape[2])))
+    model.add(layers.Dropout(0.2))
+    model.add(layers.Dense(units = 1))
 
-model.compile(loss='mean_squared_error', optimizer='adam')
+    model.compile(loss='mean_squared_error', optimizer='adam')
 
-history = model.fit(
-    X_train_random, y_train_random,
-    epochs=30,
-    batch_size=32, 
-    validation_split=0.1,
-    shuffle=False
-)
+    history = model.fit(
+        X_train_random, y_train_random,
+        epochs=30,
+        batch_size=32, 
+        validation_split=0.1,
+        shuffle=False
+    )
 
-model.save("./trained")
+    model.save("./trained")
