@@ -2,8 +2,9 @@
 package technical
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/DHBWMannheim/ml-server/util"
@@ -35,11 +36,23 @@ func NewService(model *tf.SavedModel) Service {
 func (s *service) TechnicalAnalysis(w http.ResponseWriter, r *http.Request) {
 
 	shareId := "ETH-USD"
+	daysInFuture := 30
 	params := r.URL.Query()
 
 	if share, ok := params["share"]; ok {
 		if s := share[0]; len(s) > 0 {
 			shareId = s
+		}
+	}
+
+	if days, ok := params["days"]; ok {
+		parsed, err := strconv.ParseInt(days[0], 10, 64)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if parsed <= 30 && parsed > 0 {
+			daysInFuture = int(parsed)
 		}
 	}
 
@@ -65,49 +78,53 @@ func (s *service) TechnicalAnalysis(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	rawMatrix := mat.NewDense(100, 11, nil)
-	rawMatrix.SetCol(0, input)
+	for i := 0; i < daysInFuture; i++ {
 
-	rawMatrix = generateIndicators(rawMatrix)
-	rawMatrix = parseDatesToIndicators(rawMatrix, dates)
+		rawMatrix := mat.NewDense(len(input), 11, nil)
+		rawMatrix.SetCol(0, input)
 
-	reshaped := mat.NewDense(31, 11, nil)
+		rawMatrix = generateIndicators(rawMatrix)
+		rawMatrix = parseDatesToIndicators(rawMatrix, dates)
 
-	for r := 0; r < 31; r++ {
-		reshaped.SetRow(31-r-1, rawMatrix.RawRowView(100-r-1))
+		reshaped := mat.NewDense(31, 11, nil)
+
+		for r := 0; r < 31; r++ {
+			reshaped.SetRow(31-r-1, rawMatrix.RawRowView(len(input)-r-1))
+		}
+
+		scaler := preprocessing.NewMinMaxScaler([]float64{0, 1})
+		priceScaler := preprocessing.NewMinMaxScaler([]float64{0, 1})
+
+		scaled, _ := scaler.FitTransform(reshaped, nil)
+
+		priceScaler.FitTransform(reshaped.ColView(0), nil)
+
+		modelInput := matToMultiArray(scaled)
+
+		tensor, _ := tf.NewTensor([][][]float32{modelInput})
+
+		results, err := s.model.Session.Run(
+			map[tf.Output]*tf.Tensor{
+				s.model.Graph.Operation(tfInput).Output(0): tensor,
+			},
+			[]tf.Output{
+				s.model.Graph.Operation(tfOutput).Output(0),
+			}, nil)
+
+		if err != nil {
+			http.Error(w, "could not predict stock", http.StatusInternalServerError)
+			return
+		}
+		f := results[0].Value().([][]float32)
+
+		p := mat.NewDense(1, 1, []float64{float64(f[0][0])})
+
+		rr, _ := priceScaler.InverseTransform(p, nil)
+		input = append(input, rr.At(0, 0))
 	}
 
-	scaler := preprocessing.NewMinMaxScaler([]float64{0, 1})
-	priceScaler := preprocessing.NewMinMaxScaler([]float64{0, 1})
-
-	scaled, _ := scaler.FitTransform(reshaped, nil)
-
-	priceScaler.FitTransform(reshaped.ColView(0), nil)
-
-	modelInput := matToMultiArray(scaled)
-
-	tensor, _ := tf.NewTensor([][][]float32{modelInput})
-
-	results, err := s.model.Session.Run(
-		map[tf.Output]*tf.Tensor{
-			s.model.Graph.Operation(tfInput).Output(0): tensor,
-		},
-		[]tf.Output{
-			s.model.Graph.Operation(tfOutput).Output(0),
-		}, nil)
-
-	if err != nil {
-		http.Error(w, "could not predict stock", http.StatusInternalServerError)
-		return
-	}
-
-	f := results[0].Value().([][]float32)
-
-	p := mat.NewDense(1, 1, []float64{float64(f[0][0])})
-
-	rr, _ := priceScaler.InverseTransform(p, nil)
-
-	fmt.Fprintf(w, "ETH-USD tomorrow %.2f", rr.At(0, 0))
+	w.Header().Add("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(input[len(input)-daysInFuture:])
 }
 
 func matToMultiArray(input *mat.Dense) [][]float32 {
