@@ -28,13 +28,14 @@ The `--port` flag is optional and has a default value of 5000
 | Endpoint                 | Result                                                                                                                     |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
 | `GET /sentiment/twitter` | `[ { "value": <weighted prediction of ML Model>, "date": "2020-11-10T23:00:00Z", "sma": <value of the SMA function at the current position> } ]` |
+| `GET /technical` | `[ [ {"value": "<value fetched from yahoo>", "date": "2020-11-10T23:00:00Z"} ], [ {"value": "<value predicted by model>", "date": "2020-11-10T23:00:00Z"} ]]` |
 
 ## Todos
 
 - [ ] Bin noch nicht zufrieden mit der gonum/mat Nutzung. Das ist iwie unintuitiv und umständlich
 - [x] Hinzufügen der Prediction Dates des nächsten Monats
-- [ ] mat.Dense brauch feste Rows/Cols, das führt bei dem Laden anderer Aktien zu Fehlern
-- [ ] techn. Modelle müssen jeden Tag erneuert werden, um valide Predictions zu haben
+- [x] mat.Dense brauch feste Rows/Cols, das führt bei dem Laden anderer Aktien zu Fehlern
+- [x] techn. Modelle müssen jeden Tag erneuert werden, um valide Predictions zu haben
 - [ ] On-Demand Model-Generation
 - [ ] Speichern der Modelle in Google Cloud Storage/S3 Bucket?
 
