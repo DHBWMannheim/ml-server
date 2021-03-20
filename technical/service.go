@@ -144,13 +144,14 @@ func normalizeYahooData(in quote.Quote) ([]float64, []time.Time) {
 
 	var dates []time.Time
 
-	for _, i := range ri {
-		for di, d := range in.Date {
+dateLoop:
+	for di, d := range in.Date {
+		for _, i := range ri {
 			if di == i {
-				continue
+				continue dateLoop
 			}
-			dates = append(dates, d)
 		}
+		dates = append(dates, d)
 	}
 	return input, dates
 }

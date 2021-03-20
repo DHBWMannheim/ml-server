@@ -1,3 +1,4 @@
+// Provides an http.HandlerFunc which returns a seniment analysis based on tweets
 package sentiment
 
 import (

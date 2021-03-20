@@ -80,6 +80,8 @@ func Aroon(close []float64, window int) (aroon []float64) {
 	return aroon
 }
 
+// Removes 0 Values of an Array and returnes the clean array as well
+// as the index of the removed items
 func RemoveZeroValues(input []float64) ([]float64, []int) {
 	var clean []float64
 	var removedIndices []int
