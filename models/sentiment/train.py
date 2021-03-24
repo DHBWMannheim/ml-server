@@ -15,6 +15,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 from tensorflow import feature_column
 
+from google.cloud import storage
+import shutil
+
 dataframe = pd.read_csv("data/tweets.csv", usecols=[0, 5], names=["target", "text"])
 
 dataframe = shuffle(dataframe)
@@ -108,4 +111,32 @@ examples = [
 
 sentiment_model.predict(examples)
 
-sentiment_model.save('models/sentiment/trained')
+# save model to temp folder
+model.save("models/sentiment/temp/model-sentiment")
+
+# delete empty assets and zip model
+shutil.rmtree("models/sentiment/temp/model-sentiment/assets")
+shutil.make_archive("models/sentiment/temp/model-sentiment", "zip", "models/sentiment/temp/model-sentiment")
+
+# authenticate in google cloud
+storage_client = storage.Client.from_service_account_json("data/googlecloud.json")
+
+# upload zipped model to bucket
+bucket_name = "ml-models-dhbw"
+source_file_name = "models/sentiment/temp/model-sentiment.zip"
+destination_blob_name = "sentiment/model-sentiment.zip"
+
+bucket = storage_client.bucket(bucket_name)
+blob = bucket.blob(destination_blob_name)
+
+blob.upload_from_filename(source_file_name)
+
+# remove temp content
+shutil.rmtree("models/sentiment/temp/model-sentiment")
+os.remove("models/sentiment/temp/model-sentiment.zip")
+
+print(
+    "File {} uploaded to {}.".format(
+        source_file_name, destination_blob_name
+    )
+)

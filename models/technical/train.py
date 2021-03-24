@@ -17,6 +17,8 @@ from ta.volatility import BollingerBands, AverageTrueRange
 from ta.momentum import KAMAIndicator, PercentagePriceOscillator, PercentageVolumeOscillator, ROCIndicator, RSIIndicator, StochasticOscillator
 from ta.trend import MACD, ADXIndicator, AroonIndicator
 from ta.volume import OnBalanceVolumeIndicator, AccDistIndexIndicator
+from google.cloud import storage
+import shutil
 
 if len(sys.argv) > 1:
 
@@ -131,4 +133,32 @@ if len(sys.argv) > 1:
         shuffle=False
     )
 
-    model.save("./trained")
+    # save model to temp folder
+    model.save("models/technical/temp/model-{}".format(symbol))
+
+    # delete empty assets and zip model
+    shutil.rmtree("models/technical/temp/model-{}/assets".format(symbol))
+    shutil.make_archive("models/technical/temp/model-{}".format(symbol), "zip", "models/technical/temp/model-{}".format(symbol))
+
+    # authenticate in google cloud
+    storage_client = storage.Client.from_service_account_json("data/googlecloud.json")
+
+    # upload zipped model to bucket
+    bucket_name = "ml-models-dhbw"
+    source_file_name = "models/technical/temp/model-{}.zip".format(symbol)
+    destination_blob_name = "technical/model-{}.zip".format(symbol)
+
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(destination_blob_name)
+
+    blob.upload_from_filename(source_file_name)
+
+    # remove temp content
+    shutil.rmtree("models/technical/temp/model-{}".format(symbol))
+    os.remove("models/technical/temp/model-{}.zip".format(symbol))
+
+    print(
+        "File {} uploaded to {}.".format(
+            source_file_name, destination_blob_name
+        )
+    )
