@@ -11,6 +11,7 @@ venv
 *.dll
 *.so
 *.dylib
+bin
 
 # Test binary, built with `go test -c`
 *.test
@@ -63,5 +64,6 @@ Temporary Items
 *.code-workspace
 
 data/*
+__pycache__/*
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,vscode,go

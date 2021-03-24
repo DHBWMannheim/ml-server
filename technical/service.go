@@ -33,6 +33,11 @@ func NewService(model *tf.SavedModel) Service {
 	return &service{model}
 }
 
+type predictionResult struct {
+	Value float32 `json:"value,omitempty"`
+	Date  string  `json:"date,omitempty"`
+}
+
 func (s *service) TechnicalAnalysis(w http.ResponseWriter, r *http.Request) {
 
 	shareId := "ETH-USD"
@@ -65,26 +70,14 @@ func (s *service) TechnicalAnalysis(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	input, ri := util.RemoveZeroValues(quotes.Close)
-
-	var dates []time.Time
-
-	for _, i := range ri {
-		for di, d := range quotes.Date {
-			if di == i {
-				continue
-			}
-			dates = append(dates, d)
-		}
-	}
+	input, dates := normalizeYahooData(quotes)
 
 	for i := 0; i < daysInFuture; i++ {
 
 		rawMatrix := mat.NewDense(len(input), 11, nil)
 		rawMatrix.SetCol(0, input)
 
-		rawMatrix = generateIndicators(rawMatrix)
-		rawMatrix = parseDatesToIndicators(rawMatrix, dates)
+		rawMatrix = generateIndicators(rawMatrix, dates)
 
 		reshaped := mat.NewDense(31, 11, nil)
 
@@ -121,27 +114,49 @@ func (s *service) TechnicalAnalysis(w http.ResponseWriter, r *http.Request) {
 
 		rr, _ := priceScaler.InverseTransform(p, nil)
 		input = append(input, rr.At(0, 0))
+		dates = append(dates, dates[len(dates)-1].AddDate(0, 0, 1))
+	}
+
+	var result = make([][]*predictionResult, 2)
+
+	historical, predicted := input[:len(input)-daysInFuture], input[len(input)-daysInFuture:]
+
+	for i, h := range historical {
+		result[0] = append(result[0], &predictionResult{
+			Value: float32(h),
+			Date:  dates[i].Format(time.RFC3339),
+		})
+	}
+
+	for i, p := range predicted {
+		result[1] = append(result[1], &predictionResult{
+			Value: float32(p),
+			Date:  dates[len(historical)+i].Format(time.RFC3339),
+		})
 	}
 
 	w.Header().Add("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(input[len(input)-daysInFuture:])
+	json.NewEncoder(w).Encode(result)
 }
 
-func matToMultiArray(input *mat.Dense) [][]float32 {
-	var modelInput [][]float32
+func normalizeYahooData(in quote.Quote) ([]float64, []time.Time) {
+	input, ri := util.RemoveZeroValues(in.Close)
 
-	for r := 0; r < 31; r++ {
-		var rowData []float32
-		for c := 0; c < 11; c++ {
-			rowData = append(rowData, float32(input.At(r, c)))
+	var dates []time.Time
+
+dateLoop:
+	for di, d := range in.Date {
+		for _, i := range ri {
+			if di == i {
+				continue dateLoop
+			}
 		}
-		modelInput = append(modelInput, rowData)
+		dates = append(dates, d)
 	}
-
-	return modelInput
+	return input, dates
 }
 
-func generateIndicators(input *mat.Dense) *mat.Dense {
+func generateIndicators(input *mat.Dense, dates []time.Time) *mat.Dense {
 
 	prices := make([]float64, input.RawMatrix().Rows)
 	mat.Col(prices, 0, input)
@@ -161,16 +176,25 @@ func generateIndicators(input *mat.Dense) *mat.Dense {
 	_, bbands, _ := talib.BBands(prices, 20, 2, 2, talib.SMA)
 	input.SetCol(7, bbands)
 
+	for i, t := range dates {
+		input.Set(i, 8, float64(t.Day()))
+		input.Set(i, 9, float64(t.Weekday()))
+		input.Set(i, 10, float64(t.Month()))
+	}
+
 	return input
 }
 
-func parseDatesToIndicators(indicators *mat.Dense, dates []time.Time) *mat.Dense {
+func matToMultiArray(input mat.Matrix) [][]float32 {
+	var modelInput [][]float32
 
-	for i, t := range dates {
-		indicators.Set(i, 8, float64(t.Day()))
-		indicators.Set(i, 9, float64(t.Weekday()))
-		indicators.Set(i, 10, float64(t.Month()))
+	for r := 0; r < 31; r++ {
+		var rowData []float32
+		for c := 0; c < 11; c++ {
+			rowData = append(rowData, float32(input.At(r, c)))
+		}
+		modelInput = append(modelInput, rowData)
 	}
 
-	return indicators
+	return modelInput
 }
