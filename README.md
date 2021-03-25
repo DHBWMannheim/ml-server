@@ -28,7 +28,7 @@ The `--port` flag is optional and has a default value of 5000
 | Endpoint                 | Result                                                                                                                     |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
 | `GET /sentiment/twitter` | `[ { "value": <weighted prediction of ML Model>, "date": "2020-11-10T23:00:00Z", "sma": <value of the SMA function at the current position> } ]` |
-| `GET /technical` | `[ [ {"value": "<value fetched from yahoo>", "date": "2020-11-10T23:00:00Z"} ], [ {"value": "<value predicted by model>", "date": "2020-11-10T23:00:00Z"} ]]` |
+| `GET /technical/{shareId}` | `[ [ {"value": "<value fetched from yahoo>", "date": "2020-11-10T23:00:00Z"} ], [ {"value": "<value predicted by model>", "date": "2020-11-10T23:00:00Z"} ]]` |
 
 ## Todos
 

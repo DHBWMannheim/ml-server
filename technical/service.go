@@ -2,12 +2,19 @@
 package technical
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/DHBWMannheim/ml-server/cloudstorage"
 	"github.com/DHBWMannheim/ml-server/util"
+	"github.com/hashicorp/go-hclog"
 	"github.com/pa-m/sklearn/preprocessing"
 
 	tf "github.com/galeone/tensorflow/tensorflow/go"
@@ -23,19 +30,53 @@ const (
 
 type Service interface {
 	TechnicalAnalysis(http.ResponseWriter, *http.Request)
+	LoadModel(context.Context, string) error
 }
 
 type service struct {
-	model *tf.SavedModel
+	currentModel string
+	storage      cloudstorage.Storage
+	model        *tf.SavedModel
+	l            hclog.Logger
 }
 
-func NewService(model *tf.SavedModel) Service {
-	return &service{model}
+func NewService(storage cloudstorage.Storage, l hclog.Logger) Service {
+	return &service{storage: storage, l: l, currentModel: "ETH-USD"}
 }
 
 type predictionResult struct {
 	Value float32 `json:"value,omitempty"`
 	Date  string  `json:"date,omitempty"`
+}
+
+func (s *service) LoadModel(ctx context.Context, shareId string) error {
+
+	cwd, err := os.Getwd()
+
+	if err != nil {
+		return err
+	}
+
+	modelPath := filepath.Join(cwd, "models", "technical", fmt.Sprintf("model-%s", shareId))
+	s.l.Info("attempt to load model from", "path", modelPath)
+	if _, err := os.Stat(modelPath); os.IsNotExist(err) {
+		s.l.Info("model not present locally, try getting from remote")
+		_, err := s.storage.DownloadModel(ctx, fmt.Sprintf("technical/model-%s.zip", shareId), modelPath)
+		if err != nil {
+			s.l.Info("model not present remotly, triggering training")
+			// TODO: handle if model not present online
+			return err
+		}
+	}
+
+	model, err := tf.LoadSavedModel(modelPath, []string{"serve"}, nil)
+	if err != nil {
+		return err
+	}
+
+	s.model = model
+	s.currentModel = shareId
+	return nil
 }
 
 func (s *service) TechnicalAnalysis(w http.ResponseWriter, r *http.Request) {
@@ -44,9 +85,14 @@ func (s *service) TechnicalAnalysis(w http.ResponseWriter, r *http.Request) {
 	daysInFuture := 30
 	params := r.URL.Query()
 
-	if share, ok := params["share"]; ok {
-		if s := share[0]; len(s) > 0 {
-			shareId = s
+	if share := strings.TrimPrefix(r.URL.Path, "/technical/"); !strings.Contains(share, "/") && len(share) > 0 {
+		shareId = share
+	}
+
+	if s.currentModel != shareId {
+		// TODO: Load new tf.SavedModel
+		if err := s.LoadModel(r.Context(), shareId); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}
 

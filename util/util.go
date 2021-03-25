@@ -1,7 +1,13 @@
 // Practical mathematical functions used to normalize and transform prediction results
 package util
 
-import "math"
+import (
+	"archive/zip"
+	"io"
+	"math"
+	"os"
+	"strings"
+)
 
 // Sigmoid function based this formula: https://de.wikipedia.org/wiki/Sigmoidfunktion
 //
@@ -94,4 +100,48 @@ func RemoveZeroValues(input []float64) ([]float64, []int) {
 	}
 
 	return clean, removedIndices
+}
+
+type Namer interface {
+	Name() string
+}
+
+// Extracts an archive downloaded from the gcp bucket.
+//
+// Normally the archive should contain a trained model from Tensorflow; other archives are not verified
+func ExtractTfArchive(f Namer, modelPath string) error {
+	rc, err := zip.OpenReader(f.Name())
+	if err != nil {
+		return err
+	}
+
+	defer rc.Close()
+
+	for _, zf := range rc.File {
+		filePath := modelPath + "/" + zf.Name
+		if strings.HasSuffix(zf.Name, "/") {
+			err = os.MkdirAll(filePath, 0700)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+
+		zfc, err := zf.Open()
+		if err != nil {
+			return err
+		}
+
+		ef, err := os.Create(filePath)
+		if err != nil {
+			return err
+		}
+
+		io.Copy(ef, zfc)
+
+		zfc.Close()
+		ef.Close()
+	}
+
+	return nil
 }
