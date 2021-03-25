@@ -112,7 +112,7 @@ examples = [
 sentiment_model.predict(examples)
 
 # save model to temp folder
-model.save("models/sentiment/temp/model-sentiment")
+sentiment_model.save("models/sentiment/temp/model-sentiment")
 
 # delete empty assets and zip model
 shutil.rmtree("models/sentiment/temp/model-sentiment/assets")
