@@ -90,7 +90,6 @@ func (s *service) TechnicalAnalysis(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if s.currentModel != shareId {
-		// TODO: Load new tf.SavedModel
 		if err := s.LoadModel(r.Context(), shareId); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
