@@ -1,4 +1,5 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/DHBWMannheim/ml-server.svg)](https://pkg.go.dev/github.com/DHBWMannheim/ml-server)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=DHBWMannheim_ml-server&metric=alert_status)](https://sonarcloud.io/dashboard?id=DHBWMannheim_ml-server)
 # ML-Server
 ## Getting Started
 
