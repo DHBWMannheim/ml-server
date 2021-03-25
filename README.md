@@ -32,10 +32,7 @@ The `--port` flag is optional and has a default value of 5000
 
 ## Todos
 
-- [ ] Bin noch nicht zufrieden mit der gonum/mat Nutzung. Das ist iwie unintuitiv und umständlich
-- [x] Hinzufügen der Prediction Dates des nächsten Monats
-- [x] mat.Dense brauch feste Rows/Cols, das führt bei dem Laden anderer Aktien zu Fehlern
-- [x] techn. Modelle müssen jeden Tag erneuert werden, um valide Predictions zu haben
+- [x] Speichern der Modelle in Google Cloud Storage/S3 Bucket?
+- [ ] Bug im Sentiment Model beheben
 - [ ] On-Demand Model-Generation
-- [ ] Speichern der Modelle in Google Cloud Storage/S3 Bucket?
 
