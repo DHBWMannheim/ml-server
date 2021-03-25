@@ -1,3 +1,4 @@
+// Provides functionalities to use GCP Cloud Storage as remote model store
 package cloudstorage
 
 import (

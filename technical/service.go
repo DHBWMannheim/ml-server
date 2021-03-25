@@ -29,7 +29,17 @@ const (
 )
 
 type Service interface {
+	// http.Handler to execute Code for technical analysis
+	//
+	// It accepts every valid quoteId for https://finance.yahoo.com and
+	// train a model and predict future stock values
 	TechnicalAnalysis(http.ResponseWriter, *http.Request)
+	// Loads a specific model either if present in the current fs
+	// or from a remote location, which can be specified by the -bucket flag.
+	//
+	// In case no model is present, if the value is a valid quoteId from
+	// https://finance.yahoo.com, a new model is trained and provided in the
+	// remote location
 	LoadModel(context.Context, string) error
 }
 

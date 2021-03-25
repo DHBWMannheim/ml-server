@@ -92,11 +92,19 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	mux := http.NewServeMux()
 
-	http.Handle("/sentiment/twitter", withLogging(sentimentService.TwitterSentiment, l))
-	http.Handle("/technical/", withLogging(technicalService.TechnicalAnalysis, l))
+	mux.Handle("/sentiment/twitter", withLogging(sentimentService.TwitterSentiment, l))
+	mux.Handle("/technical/", withLogging(technicalService.TechnicalAnalysis, l))
 
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", *port), nil); err != nil {
+	srv := &http.Server{
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 1 * time.Minute,
+		Addr:         fmt.Sprintf(":%d", *port),
+		Handler:      mux,
+	}
+
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 }
