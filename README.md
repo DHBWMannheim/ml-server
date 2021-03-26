@@ -11,16 +11,17 @@ go mod download
 
 2. Add datasets and tokens **Only needed, if the model should be newly trained**
 
-- add `.twitter_keys.yaml` to /data/
+- add `googlecloud.json` to /data/
 - add `tweets.csv` to /data/ - Download [here](https://www.dropbox.com/s/ur7pw797mgcc1wr/tweets.csv?dl=0)
 
 3. Start Go Server
 
 ```bash
-go run main.go --token="<Twitter API Token>" [--port=5000]
+go run main.go --token="<Twitter API Token>" [--port=5000 --bucket="ml-models-dhbw"]
 ```
 
-The `--port` flag is optional and has a default value of 5000
+The `--port` flag is optional and has a default value of 5000.
+The `--bucket` flag is optional and has a default value of "ml-models-dhbw".
 
 ## Usage
 
