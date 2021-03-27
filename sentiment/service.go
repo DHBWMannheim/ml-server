@@ -33,7 +33,7 @@ type twitterResult struct {
 type twitterResults []*twitterResult
 
 // Transforms the `Text` value of the Tweet into a Tensor to be interpreted by tensorflow
-func (t *twitterResults) ToTensor() (*tf.Tensor, error) {
+func (t *twitterResults) toTensor() (*tf.Tensor, error) {
 	var input [][1]string
 	for _, t := range *t {
 		input = append(input, [1]string{t.Text})
@@ -146,7 +146,7 @@ func (s *sentimentService) TwitterSentiment(w http.ResponseWriter, req *http.Req
 		return tweetResults[i].Date.Before(tweetResults[j].Date)
 	})
 
-	input, err := tweetResults.ToTensor()
+	input, err := tweetResults.toTensor()
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

@@ -2,12 +2,21 @@
 package technical
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
+	"cloud.google.com/go/storage"
+	"github.com/DHBWMannheim/ml-server/cloudstorage"
 	"github.com/DHBWMannheim/ml-server/util"
+	"github.com/hashicorp/go-hclog"
 	"github.com/pa-m/sklearn/preprocessing"
 
 	tf "github.com/galeone/tensorflow/tensorflow/go"
@@ -22,20 +31,71 @@ const (
 )
 
 type Service interface {
+	// http.Handler to execute Code for technical analysis
+	//
+	// It accepts every valid quoteId for https://finance.yahoo.com and
+	// train a model and predict future stock values
 	TechnicalAnalysis(http.ResponseWriter, *http.Request)
+	// Loads a specific model either if present in the current fs
+	// or from a remote location, which can be specified by the -bucket flag.
+	//
+	// In case no model is present, if the value is a valid quoteId from
+	// https://finance.yahoo.com, a new model is trained and provided in the
+	// remote location
+	LoadModel(context.Context, string) error
 }
 
 type service struct {
-	model *tf.SavedModel
+	currentModel string
+	storage      cloudstorage.Storage
+	model        *tf.SavedModel
+	l            hclog.Logger
 }
 
-func NewService(model *tf.SavedModel) Service {
-	return &service{model}
+func NewService(storage cloudstorage.Storage, l hclog.Logger) Service {
+	return &service{storage: storage, l: l, currentModel: "ETH-USD"}
 }
 
 type predictionResult struct {
 	Value float32 `json:"value,omitempty"`
 	Date  string  `json:"date,omitempty"`
+}
+
+func (s *service) LoadModel(ctx context.Context, shareId string) error {
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	modelPath := filepath.Join(cwd, "models", "technical", fmt.Sprintf("model-%s", shareId))
+	s.l.Info("attempt to load model from", "path", modelPath)
+
+	if _, err := os.Stat(modelPath); os.IsNotExist(err) {
+		s.l.Info("model not present locally, try getting from remote")
+		_, err := s.storage.DownloadModel(ctx, fmt.Sprintf("technical/model-%s.zip", shareId), modelPath)
+
+		if errors.Is(err, storage.ErrObjectNotExist) {
+			s.l.Info("model not present remotly, triggering training")
+			if err := util.TrainModelLocally(ctx, shareId); err != nil {
+				return err
+			}
+			return errors.New("Intentional breakpoint")
+		}
+
+		if err != nil {
+			return err
+		}
+	}
+
+	model, err := tf.LoadSavedModel(modelPath, []string{"serve"}, nil)
+	if err != nil {
+		return err
+	}
+
+	s.model = model
+	s.currentModel = shareId
+	return nil
 }
 
 func (s *service) TechnicalAnalysis(w http.ResponseWriter, r *http.Request) {
@@ -44,9 +104,16 @@ func (s *service) TechnicalAnalysis(w http.ResponseWriter, r *http.Request) {
 	daysInFuture := 30
 	params := r.URL.Query()
 
-	if share, ok := params["share"]; ok {
-		if s := share[0]; len(s) > 0 {
-			shareId = s
+	if share := strings.TrimPrefix(r.URL.Path, "/technical/"); !strings.Contains(share, "/") && len(share) > 0 {
+		// Make sure parameter is uppercased, to ensure correct naming and mapping from yahoo
+		shareId = strings.ToUpper(share)
+	}
+
+	if s.currentModel != shareId {
+		// TODO: make model unbound to service struct to ensure concurrency
+		if err := s.LoadModel(r.Context(), shareId); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	}
 

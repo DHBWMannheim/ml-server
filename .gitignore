@@ -3,6 +3,7 @@
 # Edit at https://www.toptal.com/developers/gitignore?templates=macos,vscode,go
 
 venv
+model-*
 
 ### Go ###
 # Binaries for programs and plugins

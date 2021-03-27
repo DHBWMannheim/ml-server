@@ -1,4 +1,5 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/DHBWMannheim/ml-server.svg)](https://pkg.go.dev/github.com/DHBWMannheim/ml-server)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=DHBWMannheim_ml-server&metric=alert_status)](https://sonarcloud.io/dashboard?id=DHBWMannheim_ml-server)
 # ML-Server
 ## Getting Started
 
@@ -10,16 +11,17 @@ go mod download
 
 2. Add datasets and tokens **Only needed, if the model should be newly trained**
 
-- add `.twitter_keys.yaml` to /data/
+- add `googlecloud.json` to /data/
 - add `tweets.csv` to /data/ - Download [here](https://www.dropbox.com/s/ur7pw797mgcc1wr/tweets.csv?dl=0)
 
 3. Start Go Server
 
 ```bash
-go run main.go --token="<Twitter API Token>" [--port=5000]
+go run main.go --token="<Twitter API Token>" [--port=5000 --bucket="ml-models-dhbw"]
 ```
 
-The `--port` flag is optional and has a default value of 5000
+The `--port` flag is optional and has a default value of 5000.
+The `--bucket` flag is optional and has a default value of "ml-models-dhbw".
 
 ## Usage
 
@@ -28,14 +30,12 @@ The `--port` flag is optional and has a default value of 5000
 | Endpoint                 | Result                                                                                                                     |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
 | `GET /sentiment/twitter` | `[ { "value": <weighted prediction of ML Model>, "date": "2020-11-10T23:00:00Z", "sma": <value of the SMA function at the current position> } ]` |
-| `GET /technical` | `[ [ {"value": "<value fetched from yahoo>", "date": "2020-11-10T23:00:00Z"} ], [ {"value": "<value predicted by model>", "date": "2020-11-10T23:00:00Z"} ]]` |
+| `GET /technical/{shareId}` | `[ [ {"value": "<value fetched from yahoo>", "date": "2020-11-10T23:00:00Z"} ], [ {"value": "<value predicted by model>", "date": "2020-11-10T23:00:00Z"} ]]` |
 
 ## Todos
 
-- [ ] Bin noch nicht zufrieden mit der gonum/mat Nutzung. Das ist iwie unintuitiv und umständlich
-- [x] Hinzufügen der Prediction Dates des nächsten Monats
-- [x] mat.Dense brauch feste Rows/Cols, das führt bei dem Laden anderer Aktien zu Fehlern
-- [x] techn. Modelle müssen jeden Tag erneuert werden, um valide Predictions zu haben
+- [x] Bug im Sentiment Model beheben
 - [ ] On-Demand Model-Generation
-- [ ] Speichern der Modelle in Google Cloud Storage/S3 Bucket?
+- [ ] Concurrent Access to technical.server.model will cause error - make thread safe
+- [ ] Concurrent acces to not present model will trigger multiple on demand generations - make thread safe lookup to see current trainings to prevent race conditions
 
