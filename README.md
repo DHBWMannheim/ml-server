@@ -34,7 +34,8 @@ The `--bucket` flag is optional and has a default value of "ml-models-dhbw".
 
 ## Todos
 
-- [x] Speichern der Modelle in Google Cloud Storage/S3 Bucket?
-- [ ] Bug im Sentiment Model beheben
+- [x] Bug im Sentiment Model beheben
 - [ ] On-Demand Model-Generation
+- [ ] Concurrent Access to technical.server.model will cause error - make thread safe
+- [ ] Concurrent acces to not present model will trigger multiple on demand generations - make thread safe lookup to see current trainings to prevent race conditions
 

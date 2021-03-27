@@ -4,6 +4,7 @@ package technical
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/storage"
 	"github.com/DHBWMannheim/ml-server/cloudstorage"
 	"github.com/DHBWMannheim/ml-server/util"
 	"github.com/hashicorp/go-hclog"
@@ -62,19 +64,26 @@ type predictionResult struct {
 func (s *service) LoadModel(ctx context.Context, shareId string) error {
 
 	cwd, err := os.Getwd()
-
 	if err != nil {
 		return err
 	}
 
 	modelPath := filepath.Join(cwd, "models", "technical", fmt.Sprintf("model-%s", shareId))
 	s.l.Info("attempt to load model from", "path", modelPath)
+
 	if _, err := os.Stat(modelPath); os.IsNotExist(err) {
 		s.l.Info("model not present locally, try getting from remote")
 		_, err := s.storage.DownloadModel(ctx, fmt.Sprintf("technical/model-%s.zip", shareId), modelPath)
-		if err != nil {
+
+		if errors.Is(err, storage.ErrObjectNotExist) {
 			s.l.Info("model not present remotly, triggering training")
-			// TODO: handle if model not present online
+			if err := util.TrainModelLocally(ctx, shareId); err != nil {
+				return err
+			}
+			return errors.New("Intentional breakpoint")
+		}
+
+		if err != nil {
 			return err
 		}
 	}
@@ -96,12 +105,15 @@ func (s *service) TechnicalAnalysis(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
 
 	if share := strings.TrimPrefix(r.URL.Path, "/technical/"); !strings.Contains(share, "/") && len(share) > 0 {
-		shareId = share
+		// Make sure parameter is uppercased, to ensure correct naming and mapping from yahoo
+		shareId = strings.ToUpper(share)
 	}
 
 	if s.currentModel != shareId {
+		// TODO: make model unbound to service struct to ensure concurrency
 		if err := s.LoadModel(r.Context(), shareId); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	}
 

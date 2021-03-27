@@ -3,9 +3,11 @@ package util
 
 import (
 	"archive/zip"
+	"context"
 	"io"
 	"math"
 	"os"
+	"os/exec"
 	"strings"
 )
 
@@ -144,4 +146,11 @@ func ExtractTfArchive(f Namer, modelPath string) error {
 	}
 
 	return nil
+}
+
+func TrainModelLocally(ctx context.Context, shareId string) error {
+
+	cmd := exec.CommandContext(ctx, "python3", "models/technical/train.py", shareId)
+
+	return cmd.Run()
 }
