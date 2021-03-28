@@ -133,19 +133,20 @@ if len(sys.argv) > 1:
         shuffle=False
     )
 
+    model_name = "models/technical/temp/model-{}".format(symbol)
     # save model to temp folder
-    model.save("models/technical/temp/model-{}".format(symbol))
+    model.save(model_name)
 
     # delete empty assets and zip model
-    shutil.rmtree("models/technical/temp/model-{}/assets".format(symbol))
-    shutil.make_archive("models/technical/temp/model-{}".format(symbol), "zip", "models/technical/temp/model-{}".format(symbol))
+    shutil.rmtree("{}/assets".format(model_name))
+    shutil.make_archive(model_name, "zip", model_name)
 
     # authenticate in google cloud
     storage_client = storage.Client.from_service_account_json("data/googlecloud.json")
 
     # upload zipped model to bucket
     bucket_name = "ml-models-dhbw"
-    source_file_name = "models/technical/temp/model-{}.zip".format(symbol)
+    source_file_name = "{}.zip".format(model_name)
     destination_blob_name = "technical/model-{}.zip".format(symbol)
 
     bucket = storage_client.bucket(bucket_name)
@@ -154,8 +155,8 @@ if len(sys.argv) > 1:
     blob.upload_from_filename(source_file_name)
 
     # remove temp content
-    shutil.rmtree("models/technical/temp/model-{}".format(symbol))
-    os.remove("models/technical/temp/model-{}.zip".format(symbol))
+    shutil.rmtree(model_name)
+    os.remove(source_file_name)
 
     print(
         "File {} uploaded to {}.".format(

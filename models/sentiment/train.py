@@ -111,12 +111,14 @@ examples = [
 
 sentiment_model.predict(examples)
 
+model_path = "models/sentiment/temp/model-sentiment"
+
 # save model to temp folder
-sentiment_model.save("models/sentiment/temp/model-sentiment")
+sentiment_model.save(model_path)
 
 # delete empty assets and zip model
 shutil.rmtree("models/sentiment/temp/model-sentiment/assets")
-shutil.make_archive("models/sentiment/temp/model-sentiment", "zip", "models/sentiment/temp/model-sentiment")
+shutil.make_archive(model_path, "zip", model_path)
 
 # authenticate in google cloud
 storage_client = storage.Client.from_service_account_json("data/googlecloud.json")
@@ -132,8 +134,8 @@ blob = bucket.blob(destination_blob_name)
 blob.upload_from_filename(source_file_name)
 
 # remove temp content
-shutil.rmtree("models/sentiment/temp/model-sentiment")
-os.remove("models/sentiment/temp/model-sentiment.zip")
+shutil.rmtree(model_path)
+os.remove(source_file_name)
 
 print(
     "File {} uploaded to {}.".format(
