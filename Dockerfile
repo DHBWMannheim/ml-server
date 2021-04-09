@@ -25,7 +25,7 @@ RUN GOOS=linux go build -ldflags '-w -s' -o /app/main
 FROM ubuntu as prod
 
 RUN apt-get update \
-    && apt-get install -y wget \
+    && apt-get install -y wget python3 python3-pip \
     && wget https://github.com/Yelp/dumb-init/releases/download/v1.2.5/dumb-init_1.2.5_amd64.deb \
     && dpkg -i dumb-init_1.2.5_amd64.deb \
     && rm dumb-init_1.2.5_amd64.deb \
@@ -40,9 +40,12 @@ COPY --chown=0:0 --from=builder /app/models/technical/ /app/models/technical/
 
 
 WORKDIR /app
+
+RUN pip3 install -r models/technical/requirements.txt
+
 RUN adduser --home /app --no-create-home restricted_user \
     && chown -R restricted_user /app \
-    && chmod -R 500 ./main ./models/sentiment/ \
-    && umask 777
+    && chmod -R 700 ./main ./models/sentiment/ \
+    && umask 111
 USER restricted_user
 CMD /usr/bin/dumb-init ./main --port=$PORT --token=$TWITTER_TOKEN

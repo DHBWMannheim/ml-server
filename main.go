@@ -18,6 +18,7 @@ import (
 	tf "github.com/galeone/tensorflow/tensorflow/go"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-hclog"
+	"github.com/rs/cors"
 )
 
 type authorize struct {
@@ -97,11 +98,12 @@ func main() {
 	mux.Handle("/sentiment/twitter", withLogging(sentimentService.TwitterSentiment, l))
 	mux.Handle("/technical/", withLogging(technicalService.TechnicalAnalysis, l))
 
+	h := cors.Default().Handler(mux)
 	srv := &http.Server{
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 1 * time.Minute,
 		Addr:         fmt.Sprintf(":%d", *port),
-		Handler:      mux,
+		Handler:      h,
 	}
 
 	if err := srv.ListenAndServe(); err != nil {
