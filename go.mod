@@ -12,7 +12,7 @@ require (
 	github.com/markcheno/go-quote v0.0.0-20201111135441-45c9eb9ba017
 	github.com/markcheno/go-talib v0.0.0-20190307022042-cd53a9264d70
 	github.com/pa-m/sklearn v0.0.0-20200711083454-beb861ee48b1
-	github.com/rs/cors v1.7.0 // indirect
+	github.com/rs/cors v1.7.0
 	gonum.org/v1/gonum v0.9.0
 	google.golang.org/api v0.40.0
 )
