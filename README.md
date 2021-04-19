@@ -44,10 +44,6 @@ The `--bucket` flag is optional and has a default value of "ml-models-dhbw".
 | `GET /sentiment/twitter` | `[ { "value": <weighted prediction of ML Model>, "date": "2020-11-10T23:00:00Z", "sma": <value of the SMA function at the current position> } ]` |
 | `GET /technical/{shareId}` | `[ [ {"value": "<value fetched from yahoo>", "date": "2020-11-10T23:00:00Z"} ], [ {"value": "<value predicted by model>", "date": "2020-11-10T23:00:00Z"} ]]` |
 
-## Todos
+## Anwendung
 
-- [x] Bug im Sentiment Model beheben
-- [ ] On-Demand Model-Generation
-- [ ] Concurrent Access to technical.server.model will cause error - make thread safe
-- [ ] Concurrent acces to not present model will trigger multiple on demand generations - make thread safe lookup to see current trainings to prevent race conditions
-
+Unsere API wird gerade im Rahmen des [Klopapier.exchange Projektes](https://github.com/michael-spengler/klopapier.exchange), welche [hier] (https://klopapier.exchange/#/) abgerufen werden kann implementiert.
