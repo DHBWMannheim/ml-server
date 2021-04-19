@@ -46,4 +46,4 @@ The `--bucket` flag is optional and has a default value of "ml-models-dhbw".
 
 ## Anwendung
 
-Unsere API wird gerade im Rahmen des [Klopapier.exchange Projektes](https://github.com/michael-spengler/klopapier.exchange), welche [hier] (https://klopapier.exchange/#/) abgerufen werden kann implementiert.
+Unsere API wird gerade im Rahmen des [Klopapier.exchange Projektes](https://github.com/michael-spengler/klopapier.exchange), welche [hier] (https://klopapier.exchange) abgerufen werden kann implementiert.
