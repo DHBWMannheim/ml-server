@@ -123,6 +123,7 @@ func (s *service) TechnicalAnalysis(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		daysInFuture = int(parsed)
 	}
 
 	start := time.Now().Format("2006-01-02")
