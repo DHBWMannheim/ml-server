@@ -123,7 +123,7 @@ if len(sys.argv) > 1:
 
     model = tf.keras.Sequential()
 
-    model.add(layers.LSTM(units = 15, return_sequences = False, input_shape = (X_train_random.shape[1], X_train_random.shape[2])))
+    model.add(layers.LSTM(units = 10, return_sequences = False, input_shape = (X_train_random.shape[1], X_train_random.shape[2])))
     model.add(layers.Dropout(0.2))
     model.add(layers.Dense(units = 1))
 
@@ -131,7 +131,7 @@ if len(sys.argv) > 1:
 
     history = model.fit(
         X_train_random, y_train_random,
-        epochs=30,
+        epochs=10,
         validation_split=0.1,
         shuffle=False
     )
