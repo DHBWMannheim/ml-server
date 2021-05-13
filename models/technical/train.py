@@ -1,33 +1,37 @@
-import matplotlib.pyplot as plt
-import os, random, sys
-import tensorflow as tf
-from tensorflow.keras import layers
-import pandas as pd
-from sklearn.utils import shuffle
-import numpy as np
-import pandas_datareader.data as pdr
-from pylab import rcParams
-from matplotlib import rc
-from sklearn.model_selection import train_test_split
-from pandas.plotting import register_matplotlib_converters
-from sklearn.preprocessing import MinMaxScaler
-from datetime import datetime, timezone,timedelta
-from ta.utils import dropna
-from ta.volatility import BollingerBands, AverageTrueRange
-from ta.momentum import KAMAIndicator, PercentagePriceOscillator, PercentageVolumeOscillator, ROCIndicator, RSIIndicator, StochasticOscillator
-from ta.trend import MACD, ADXIndicator, AroonIndicator
-from ta.volume import OnBalanceVolumeIndicator, AccDistIndexIndicator
-from google.cloud import storage
+import os
+import random
 import shutil
+import sys
+from datetime import datetime, timedelta, timezone
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import pandas_datareader.data as pdr
+import tensorflow as tf
+import yfinance as yf
+from google.cloud import storage
+from matplotlib import rc
+from pandas.plotting import register_matplotlib_converters
+from pylab import rcParams
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.utils import shuffle
+from ta.momentum import (KAMAIndicator, PercentagePriceOscillator,
+                         PercentageVolumeOscillator, ROCIndicator,
+                         RSIIndicator, StochasticOscillator)
+from ta.trend import MACD, ADXIndicator, AroonIndicator
+from ta.utils import dropna
+from ta.volatility import AverageTrueRange, BollingerBands
+from ta.volume import AccDistIndexIndicator, OnBalanceVolumeIndicator
+from tensorflow.keras import layers
 
 if len(sys.argv) > 1:
 
-    batch_size = 31
+    batch_size = 31*24
     symbol = sys.argv[1]
 
-    end = datetime.today()
-    start = datetime(2000, 9, 1)
-    ETH = pdr.DataReader(symbol,'yahoo',start,end)
+    ETH = yf.download(tickers=symbol, period="729d", interval="60m")
 
     df = pd.DataFrame(data=ETH)
 
@@ -128,7 +132,6 @@ if len(sys.argv) > 1:
     history = model.fit(
         X_train_random, y_train_random,
         epochs=30,
-        batch_size=32, 
         validation_split=0.1,
         shuffle=False
     )
