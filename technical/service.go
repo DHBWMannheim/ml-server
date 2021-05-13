@@ -126,9 +126,9 @@ func (s *service) TechnicalAnalysis(w http.ResponseWriter, r *http.Request) {
 	}
 
 	start := time.Now().Format("2006-01-02")
-	end := time.Now().AddDate(0, 0, -100).Format("2006-01-02")
+	end := time.Now().AddDate(0, 0, -31).Format("2006-01-02")
 
-	quotes, err := quote.NewQuoteFromYahoo(shareId, end, start, quote.Daily, true)
+	quotes, err := quote.NewQuoteFromBinance(shareId, end, start, quote.Min60)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -142,11 +142,11 @@ func (s *service) TechnicalAnalysis(w http.ResponseWriter, r *http.Request) {
 		rawMatrix.SetCol(0, input)
 
 		rawMatrix = generateIndicators(rawMatrix, dates)
+		batchsize := 31 * 24
+		reshaped := mat.NewDense(batchsize, 11, nil)
 
-		reshaped := mat.NewDense(31, 11, nil)
-
-		for r := 0; r < 31; r++ {
-			reshaped.SetRow(31-r-1, rawMatrix.RawRowView(len(input)-r-1))
+		for r := 0; r < batchsize; r++ {
+			reshaped.SetRow(batchsize-r-1, rawMatrix.RawRowView(len(input)-r-1))
 		}
 
 		scaler := preprocessing.NewMinMaxScaler([]float64{0, 1})
@@ -252,7 +252,7 @@ func generateIndicators(input *mat.Dense, dates []time.Time) *mat.Dense {
 func matToMultiArray(input mat.Matrix) [][]float32 {
 	var modelInput [][]float32
 
-	for r := 0; r < 31; r++ {
+	for r := 0; r < 31*24; r++ {
 		var rowData []float32
 		for c := 0; c < 11; c++ {
 			rowData = append(rowData, float32(input.At(r, c)))
