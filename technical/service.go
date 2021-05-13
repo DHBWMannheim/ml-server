@@ -101,7 +101,7 @@ func (s *service) LoadModel(ctx context.Context, shareId string) error {
 func (s *service) TechnicalAnalysis(w http.ResponseWriter, r *http.Request) {
 
 	shareId := "ETH-USD"
-	daysInFuture := 30
+	daysInFuture := 24
 	params := r.URL.Query()
 
 	if share := strings.TrimPrefix(r.URL.Path, "/technical/"); !strings.Contains(share, "/") && len(share) > 0 {
